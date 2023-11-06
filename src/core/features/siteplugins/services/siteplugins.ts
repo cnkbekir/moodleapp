@@ -31,6 +31,7 @@ import { CoreLogger } from '@singletons/logger';
 import { CoreSitePluginsModuleHandler } from '../classes/handlers/module-handler';
 import { CorePromisedValue } from '@classes/promised-value';
 import { CorePlatform } from '@services/platform';
+import { CoreEnrolAction, CoreEnrolInfoIcon } from '@features/enrol/services/enrol-delegate';
 
 const ROOT_CACHE_KEY = 'CoreSitePlugins:';
 
@@ -394,7 +395,7 @@ export class CoreSitePluginsProvider {
      * Check if the get content WS is available.
      *
      * @returns If get content WS is available.
-     * @deprecated since app 4.0
+     * @deprecated since 4.0
      */
     isGetContentAvailable(): boolean {
         return true;
@@ -825,7 +826,7 @@ export type CoreSitePluginsPlugin = CoreSitePluginsWSPlugin & {
 export type CoreSitePluginsHandlerData = CoreSitePluginsInitHandlerData | CoreSitePluginsCourseOptionHandlerData |
 CoreSitePluginsMainMenuHandlerData | CoreSitePluginsCourseModuleHandlerData | CoreSitePluginsCourseFormatHandlerData |
 CoreSitePluginsUserHandlerData | CoreSitePluginsSettingsHandlerData | CoreSitePluginsMessageOutputHandlerData |
-CoreSitePluginsBlockHandlerData | CoreSitePluginsMainMenuHomeHandlerData;
+CoreSitePluginsBlockHandlerData | CoreSitePluginsMainMenuHomeHandlerData | CoreSitePluginsEnrolHandlerData;
 
 /**
  * Plugin handler data common to all delegates.
@@ -894,6 +895,7 @@ export type CoreSitePluginsCourseModuleHandlerData = CoreSitePluginsHandlerCommo
     supportedfeatures?: Record<string, unknown>;
     manualcompletionalwaysshown?: boolean;
     nolinkhandlers?: boolean;
+    hascustomcmlistitem?: boolean;
 };
 
 /**
@@ -903,7 +905,7 @@ export type CoreSitePluginsCourseFormatHandlerData = CoreSitePluginsHandlerCommo
     canviewallsections?: boolean;
     displayenabledownload?: boolean;
     /**
-     * @deprecated on 4.0, use displaycourseindex instead.
+     * @deprecated since 4.0. Use displaycourseindex instead.
      */
     displaysectionselector?: boolean;
     displaycourseindex?: boolean;
@@ -958,6 +960,14 @@ export type CoreSitePluginsBlockHandlerData = CoreSitePluginsHandlerCommonData &
         type?: string;
     };
     fallback?: string;
+};
+
+/**
+ * Enrol handler specific data.
+ */
+export type CoreSitePluginsEnrolHandlerData = CoreSitePluginsHandlerCommonData & {
+    enrolmentAction?: CoreEnrolAction;
+    infoIcons?: CoreEnrolInfoIcon[];
 };
 
 /**

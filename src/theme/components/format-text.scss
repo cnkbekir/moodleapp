@@ -74,7 +74,7 @@ core-format-text {
         position: absolute;
         @include position(null, 10px, 10px, null);
         color: var(--ion-text-color);
-        border-radius: var(--huge-radius);
+        border-radius: var(--radius-xl);
         background-color: var(--core-format-text-viewer-icon-background);
         display: flex;
 
@@ -111,10 +111,6 @@ core-format-text {
         overflow-x: auto;
         margin: 0;
         padding: 10px 0;
-    }
-
-    .btn-link {
-        background: none;
     }
 
 }
@@ -211,6 +207,7 @@ core-format-text {
 }
 
 core-format-text,
+.item core-format-text,
 core-rich-text-editor .core-rte-editor {
     @include core-headings();
 
@@ -283,7 +280,7 @@ core-rich-text-editor .core-rte-editor {
         border: 1px solid var(--gray-500);
         background: var(--contrast-background);
         padding: 6px 8px;
-        border-radius: var(--small-radius);
+        border-radius: var(--radius-xs);
         margin-left: 2px;
         margin-right: 2px;
         margin-bottom: 10px;
@@ -676,6 +673,29 @@ core-rich-text-editor .core-rte-editor {
         .label-#{$color-name} {
             color: var(--#{$color-name}-contrast);
             background-color: var(--#{$color-name});
+        }
+    }
+
+    .btn-link {
+        background: none;
+    }
+
+    button, .btn {
+        margin: 4px 8px;
+        padding-left: 12px;
+        padding-right: 12px;
+        border-radius: var(--core-input-radius);
+        a {
+            color: inherit;
+        }
+    }
+
+    @each $color-name, $unused in $colors {
+        .btn.btn-#{$color-name} {
+            --color-base: var(--#{$color-name});
+            color: var(--#{$color-name}-shade);
+            border-color: var(--color-base);
+            background-color: var(--#{$color-name}-tint);
         }
     }
 }

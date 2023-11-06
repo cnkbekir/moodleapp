@@ -81,6 +81,9 @@ export enum CoreCourseModuleCompletionStatus {
     COMPLETION_COMPLETE_FAIL = 3,
 }
 
+/**
+ * @deprecated since 4.3 Not used anymore.
+ */
 export enum CoreCourseCompletionMode {
     FULL = 'full',
     BASIC = 'basic',
@@ -704,6 +707,7 @@ export class CoreCourseProvider {
             course: courseId,
             section: sectionId,
             completiondata: completionData,
+            availabilityinfo: this.treatAvailablityInfo(module.availabilityinfo),
         };
     }
 
@@ -851,7 +855,7 @@ export class CoreCourseProvider {
 
         let path = 'assets/img/mod/';
         if (!CoreSites.getCurrentSite()?.isVersionGreaterEqualThan('4.0')) {
-            // @deprecatedonmoodle since Moodle 3.11.
+            // @deprecatedonmoodle since 3.11.
             path = 'assets/img/mod_legacy/';
         }
 
@@ -862,10 +866,10 @@ export class CoreCourseProvider {
     /**
      * Get the section ID a module belongs to.
      *
-     * @deprecated since 4.0.
      * @param moduleId The module ID.
      * @param siteId Site ID. If not defined, current site.
      * @returns Promise resolved with the section ID.
+     * @deprecated since 4.0.
      */
     async getModuleSectionId(moduleId: number, siteId?: string): Promise<number> {
         // Try to get the section using getModuleBasicInfo.
@@ -998,6 +1002,7 @@ export class CoreCourseProvider {
                     // Add course to all modules.
                     return sections.map((section) => ({
                         ...section,
+                        availabilityinfo: this.treatAvailablityInfo(section.availabilityinfo),
                         modules: section.modules.map((module) => this.addAdditionalModuleData(module, courseId, section.id)),
                     }));
                 }),
@@ -1555,6 +1560,21 @@ export class CoreCourseProvider {
         }, siteId);
     }
 
+    /**
+     * Treat availability info HTML.
+     *
+     * @param availabilityInfo HTML to treat.
+     * @returns Treated HTML.
+     */
+    protected treatAvailablityInfo(availabilityInfo?: string): string | undefined {
+        if (!availabilityInfo) {
+            return availabilityInfo;
+        }
+
+        // Remove "Show more" option in 4.2 or older sites.
+        return CoreDomUtils.removeElementFromHtml(availabilityInfo, 'li[data-action="showmore"]');
+    }
+
 }
 
 export const CoreCourse = makeSingleton(CoreCourseProvider);
@@ -1764,6 +1784,7 @@ export type CoreCourseGetContentsWSModule = {
     completion?: CoreCourseModuleCompletionTracking; // Type of completion tracking: 0 means none, 1 manual, 2 automatic.
     completiondata?: CoreCourseModuleWSCompletionData; // Module completion data.
     contents?: CoreCourseModuleContentFile[];
+    groupmode?: number; // @since 4.3. Group mode value
     downloadcontent?: number; // @since 4.0 The download content value.
     dates?: {
         label: string;

@@ -1,7 +1,7 @@
 <core-loading [hideUntil]="loaded">
     <div class="list-item-limited-width">
         <!-- Time limit is over. -->
-        <ion-card *ngIf="timeLimitFinished" class="core-danger-card">
+        <ion-card *ngIf="timeLimitFinished && (canEdit || canSubmit)" class="core-danger-card">
             <ion-item class="ion-text-wrap">
                 <ion-icon name="fas-triangle-exclamation" slot="start" aria-hidden="true"></ion-icon>
                 <ion-label>
@@ -363,7 +363,7 @@
                             <p class="item-heading">{{ 'addon.mod_assign.groupsubmissionsettings' | translate }}</p>
                             <p>{{ 'addon.mod_assign.applytoteam' | translate }}</p>
                         </ion-label>
-                        <ion-toggle [(ngModel)]="grade.applyToAll"></ion-toggle>
+                        <ion-toggle [(ngModel)]="grade.applyToAll" slot="end"></ion-toggle>
                     </ion-item>
 
                     <!-- Attempt status. -->
@@ -387,7 +387,7 @@
                         </ion-item>
                         <ion-item *ngIf="canSaveGrades && allowAddAttempt">
                             <ion-label>{{ 'addon.mod_assign.addattempt' | translate }}</ion-label>
-                            <ion-toggle [(ngModel)]="grade.addAttempt"></ion-toggle>
+                            <ion-toggle [(ngModel)]="grade.addAttempt" slot="end"></ion-toggle>
                         </ion-item>
                     </ng-container>
 

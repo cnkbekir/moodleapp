@@ -74,6 +74,8 @@ import { CoreCourseWithImageAndColor } from '@features/courses/services/courses-
 import { CoreCourseSummaryPage } from '../pages/course-summary/course-summary.page';
 import { CoreRemindersPushNotificationData } from '@features/reminders/services/reminders';
 import { CoreLocalNotifications } from '@services/local-notifications';
+import { CoreEnrol } from '@features/enrol/services/enrol';
+import { CoreEnrolAction, CoreEnrolDelegate } from '@features/enrol/services/enrol-delegate';
 
 /**
  * Prefetch info of a module.
@@ -259,8 +261,8 @@ export class CoreCourseHelperProvider {
     /**
      * Calculate completion data of a module.
      *
-     * @deprecated since 4.0.
      * @param module Module.
+     * @deprecated since 4.0.
      */
     calculateModuleCompletionData(module: CoreCourseModuleData): void {
         if (!module.completiondata || !module.completion) {
@@ -310,6 +312,7 @@ export class CoreCourseHelperProvider {
         }
 
         sectionWithStatus.downloadStatus = result.status;
+        // eslint-disable-next-line deprecation/deprecation
         sectionWithStatus.canCheckUpdates = true;
 
         // Set this section data.
@@ -372,6 +375,7 @@ export class CoreCourseHelperProvider {
             if (allSectionsSection) {
                 // Set "All sections" data.
                 allSectionsSection.downloadStatus = allSectionsStatus;
+                // eslint-disable-next-line deprecation/deprecation
                 allSectionsSection.canCheckUpdates = true;
                 allSectionsSection.isDownloading = allSectionsStatus === CoreConstants.DOWNLOADING;
             }
@@ -516,7 +520,7 @@ export class CoreCourseHelperProvider {
      * @param module Module to remove the files.
      * @param courseId Course ID the module belongs to.
      * @returns Promise resolved when done.
-     * @deprecated since 4.0
+     * @deprecated since 4.0.
      */
     async confirmAndRemoveFiles(module: CoreCourseModuleData, courseId: number): Promise<void> {
         let modal: CoreIonLoadingElement | undefined;
@@ -592,22 +596,26 @@ export class CoreCourseHelperProvider {
     }
 
     /**
-     * Check whether a course is accessed using guest access and if it requires password to enter.
+     * Check whether a course is accessed using guest access and if it requires user input to enter.
      *
      * @param courseId Course ID.
      * @param siteId Site ID. If not defined, current site.
-     * @returns Promise resolved with guestAccess and passwordRequired booleans.
+     * @returns Data about guest access info.
      */
     async courseUsesGuestAccessInfo(
         courseId: number,
         siteId?: string,
-    ): Promise<{guestAccess: boolean; passwordRequired?: boolean}> {
+    ): Promise<CoreCourseGuestAccessInfo> {
+        const accessData: CoreCourseGuestAccessInfo = {
+            guestAccess: false,
+        };
+
         try {
             try {
                 // Check if user is enrolled. If enrolled, no guest access.
                 await CoreCourses.getUserCourse(courseId, false, siteId);
 
-                return { guestAccess: false };
+                return accessData;
             } catch {
                 // Ignore errors.
             }
@@ -616,29 +624,36 @@ export class CoreCourseHelperProvider {
                 // The user is not enrolled in the course. Use getCourses to see if it's an admin/manager and can see the course.
                 await CoreCourses.getCourse(courseId, siteId);
 
-                return { guestAccess: false };
+                return accessData;
             } catch {
                 // Ignore errors.
             }
 
             // Check if guest access is enabled.
-            const enrolmentMethods = await CoreCourses.getCourseEnrolmentMethods(courseId, siteId);
+            const enrolmentMethods = await CoreEnrol.getSupportedCourseEnrolmentMethods(courseId, {
+                action: CoreEnrolAction.GUEST,
+                siteId,
+            });
 
-            const method = enrolmentMethods.find((method) => method.type === 'guest');
-
-            if (!method) {
-                return { guestAccess: false };
+            if (!enrolmentMethods) {
+                return accessData;
             }
 
-            const info = await CoreCourses.getCourseGuestEnrolmentInfo(method.id);
+            const results = await Promise.all(enrolmentMethods.map(method => CoreEnrolDelegate.canAccess(method)));
 
-            // Don't allow guest access if it requires a password and it's available.
-            return {
-                guestAccess: info.status && (!info.passwordrequired || CoreCourses.isValidateGuestAccessPasswordAvailable()),
-                passwordRequired: info.passwordrequired,
-            };
+            results.forEach(result => {
+                accessData.guestAccess = accessData.guestAccess || result.canAccess;
+                if (accessData.requiresUserInput !== false && result.canAccess) {
+                    accessData.requiresUserInput = result.requiresUserInput ?? accessData.requiresUserInput;
+                }
+            });
+
+            // eslint-disable-next-line deprecation/deprecation
+            accessData.passwordRequired = accessData.requiresUserInput; // For backwards compatibility.
+
+            return accessData;
         } catch {
-            return { guestAccess: false };
+            return accessData;
         }
     }
 
@@ -1346,11 +1361,11 @@ export class CoreCourseHelperProvider {
     /**
      * Get the course ID from a module instance ID, showing an error message if it can't be retrieved.
      *
-     * @deprecated since 4.0.
      * @param instanceId Instance ID.
      * @param moduleName Name of the module. E.g. 'glossary'.
      * @param siteId Site ID. If not defined, current site.
      * @returns Promise resolved with the module's course ID.
+     * @deprecated since 4.0.
      */
     async getModuleCourseIdByInstance(instanceId: number, moduleName: string, siteId?: string): Promise<number> {
         try {
@@ -1790,6 +1805,7 @@ export class CoreCourseHelperProvider {
 
             // Set "All sections" data.
             section.downloadStatus = allSectionsStatus;
+            // eslint-disable-next-line deprecation/deprecation
             section.canCheckUpdates = true;
             section.isDownloading = allSectionsStatus === CoreConstants.DOWNLOADING;
         } finally {
@@ -2000,12 +2016,10 @@ export class CoreCourseHelperProvider {
      * Completion clicked.
      *
      * @param completion The completion.
-     * @param event The click event.
      * @returns Promise resolved with the result.
      */
     async changeManualCompletion(
         completion: CoreCourseModuleCompletionData,
-        event?: Event,
     ): Promise<CoreStatusWithWarningsWSResponse | void> {
         if (!completion) {
             return;
@@ -2015,9 +2029,6 @@ export class CoreCourseHelperProvider {
             completion.tracking !== CoreCourseModuleCompletionTracking.COMPLETION_TRACKING_MANUAL) {
             return;
         }
-
-        event?.preventDefault();
-        event?.stopPropagation();
 
         const modal = await CoreDomUtils.showModalLoading();
         completion.state = completion.state === CoreCourseModuleCompletionStatus.COMPLETION_COMPLETE
@@ -2109,7 +2120,10 @@ export type CoreCourseSection = CoreCourseWSSection & {
  */
 export type CoreCourseSectionWithStatus = CoreCourseSection & {
     downloadStatus?: string; // Section status.
-    canCheckUpdates?: boolean; // Whether can check updates. @deprecated since app 4.0
+    /**
+     * @deprecated since 4.0.
+     */
+    canCheckUpdates?: boolean; // Whether can check updates.
     isDownloading?: boolean; // Whether section is being downloaded.
     total?: number; // Total of modules being downloaded.
     count?: number; // Number of downloaded modules.
@@ -2151,7 +2165,7 @@ export type CoreCoursePrefetchCourseOptions = {
     sections?: CoreCourseWSSection[]; // List of course sections.
     courseHandlers?: CoreCourseOptionsHandlerToDisplay[]; // List of course handlers.
     menuHandlers?: CoreCourseOptionsMenuHandlerToDisplay[]; // List of course menu handlers.
-    isGuest?: boolean; // Whether the user is guest.
+    isGuest?: boolean; // Whether the user is using an ACCESS_GUEST enrolment method.
 };
 
 /**
@@ -2192,4 +2206,16 @@ export type CoreCourseNavigateToModuleOptions = CoreCourseNavigateToModuleCommon
 export type CoreCourseOpenModuleOptions = {
     sectionId?: number; // Section the module belongs to.
     modNavOptions?: CoreNavigationOptions; // Navigation options to open the module, including params to pass to the module.
+};
+
+/**
+ * Result of courseUsesGuestAccessInfo.
+ */
+export type CoreCourseGuestAccessInfo = {
+    guestAccess: boolean; // Whether guest access is enabled for a course.
+    requiresUserInput?: boolean; // Whether the first guest access enrolment method requires user input.
+    /**
+     * @deprecated since 4.3. Use requiresUserInput instead.
+     */
+    passwordRequired?: boolean;
 };

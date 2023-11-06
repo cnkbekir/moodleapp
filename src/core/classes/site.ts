@@ -111,7 +111,7 @@ export class CoreSite {
         '4.0': 2022041900,
         '4.1': 2022112800,
         '4.2': 2023042400,
-        '4.3': 2024000000, // @todo [4.3] replace with right value when released. Using a tmp value to be able to test new things.
+        '4.3': 2023100900,
     };
 
     // Possible cache update frequencies.
@@ -1607,8 +1607,9 @@ export class CoreSite {
      * Check if the local_mobile plugin is installed in the Moodle site.
      *
      * @returns Promise resolved when the check is done.
-     * @deprecated since app 4.0
+     * @deprecated since 4.0.
      */
+    // eslint-disable-next-line deprecation/deprecation
     async checkLocalMobilePlugin(): Promise<LocalMobileResponse> {
         // Not used anymore.
         return { code: 0, coreSupported: true };
@@ -1618,7 +1619,7 @@ export class CoreSite {
      * Check if local_mobile has been installed in Moodle.
      *
      * @returns Whether the App is able to use local_mobile plugin for this site.
-     * @deprecated since app 4.0
+     * @deprecated since 4.0.
      */
     checkIfAppUsesLocalMobile(): boolean {
         return false;
@@ -1628,7 +1629,7 @@ export class CoreSite {
      * Check if local_mobile has been installed in Moodle but the app is not using it.
      *
      * @returns Promise resolved it local_mobile was added, rejected otherwise.
-     * @deprecated since app 4.0
+     * @deprecated since 4.0.
      */
     async checkIfLocalMobileInstalledAndNotUsed(): Promise<void> {
         throw new CoreError('Deprecated.');
@@ -2125,7 +2126,7 @@ export class CoreSite {
                 CoreConstants.SECONDS_MINUTE * 6,
             );
 
-            if (CoreTimeUtils.timestamp() - this.lastAutoLogin < timeBetweenRequests) {
+            if (CoreTimeUtils.timestamp() - this.lastAutoLogin < Number(timeBetweenRequests)) {
                 // Not enough time has passed since last auto login.
                 return url;
             }
@@ -2626,7 +2627,7 @@ export type CoreSiteWSPreSets = {
 /**
  * Response of checking local_mobile status.
  *
- * @deprecated since app 4.0
+ * @deprecated since 4.0.
  */
 export type LocalMobileResponse = {
     /**
@@ -2747,6 +2748,8 @@ export const enum CoreSiteConfigSupportAvailability {
  */
 export type CoreSiteConfig = Record<string, string> & {
     supportavailability?: string; // String representation of CoreSiteConfigSupportAvailability.
+    searchbanner?: string; // Search banner text.
+    searchbannerenable?: string; // Whether search banner is enabled.
 };
 
 /**
@@ -2769,7 +2772,7 @@ export type CoreSitePublicConfigResponse = {
     maintenancemessage: string; // Maintenance message.
     logourl?: string; // The site logo URL.
     compactlogourl?: string; // The site compact logo URL.
-    typeoflogin: number; // The type of login. 1 for app, 2 for browser, 3 for embedded.
+    typeoflogin: TypeOfLogin; // The type of login. 1 for app, 2 for browser, 3 for embedded.
     launchurl?: string; // SSO login launch URL.
     mobilecssurl?: string; // Mobile custom CSS theme.
     // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -2866,4 +2869,13 @@ export type WSObservable<T> = Observable<T>;
 enum OngoingRequestType {
     STANDARD = 0,
     UPDATE_IN_BACKGROUND = 1,
+}
+
+/**
+ * The type of login. 1 for app, 2 for browser, 3 for embedded.
+ */
+export enum TypeOfLogin {
+    APP = 1,
+    BROWSER = 2, // SSO in browser window is required.
+    EMBEDDED = 3, // SSO in embedded browser is required.
 }
